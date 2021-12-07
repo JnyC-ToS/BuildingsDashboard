@@ -1,3 +1,5 @@
+/* Dropdown style fix */
+
 .VirtualizedSelectOption {
 	background-color: white;
 	color: black;
@@ -7,6 +9,8 @@
 	background-color: lightgrey;
 	color: black;
 }
+
+/* Dark mode dropdown */
 
 .dark-mode .Select-control {
 	background-color: var(--bs-body-bg);
@@ -34,4 +38,168 @@
 .dark-mode .VirtualizedSelectFocusedOption {
 	background-color: var(--bs-gray-dark);
 	color: var(--bs-body-color);
+}
+
+/* Buttons custom colors */
+
+.btn-primary {
+    color: #fff;
+    background-color: #9900ff;
+    border-color: #9900ff;
+}
+
+.btn-primary:hover {
+    color: #fff;
+    background-color: #7a00cc;
+    border-color: #7a00cc;
+}
+
+.btn-check:focus + .btn-primary,
+.btn-primary:focus {
+    color: #fff;
+    background-color: #7a00cc;
+    border-color: #6b00b3;
+    box-shadow: 0 0 0 .25rem rgba(107, 0, 179, .5);
+}
+
+.btn-check:active + .btn-primary,
+.btn-check:checked + .btn-primary,
+.btn-primary.active,
+.btn-primary:active,
+.show > .btn-primary.dropdown-toggle {
+    color: #fff;
+    background-color: #7a00cc;
+    border-color: #6b00b3;
+}
+
+.btn-check:active + .btn-primary:focus,
+.btn-check:checked + .btn-primary:focus,
+.btn-primary.active:focus,
+.btn-primary:active:focus,
+.show > .btn-primary.dropdown-toggle:focus {
+    box-shadow: 0 0 0 .25rem rgba(107, 0, 179, .5);
+}
+
+/* Dark mode buttons custom colors */
+
+.dark-mode .btn-primary {
+    color: #fff;
+    background-color: #ff59c7;
+    border-color: #ff59c7;
+}
+
+.dark-mode .btn-primary:hover {
+    color: #fff;
+    background-color: #ff33bb;
+    border-color: #ff33bb;
+}
+
+.dark-mode .btn-check:focus + .btn-primary,
+.dark-mode .btn-primary:focus {
+    color: #fff;
+    background-color: #ff33bb;
+    border-color: #ff1ab3;
+    box-shadow: 0 0 0 .25rem rgba(255, 26, 179, .5);
+}
+
+.dark-mode .btn-check:active + .btn-primary,
+.dark-mode .btn-check:checked + .btn-primary,
+.dark-mode .btn-primary.active,
+.dark-mode .btn-primary:active,
+.dark-mode .show > .btn-primary.dropdown-toggle {
+    color: #fff;
+    background-color: #ff33bb;
+    border-color: #ff1ab3;
+}
+
+.dark-mode .btn-check:active + .btn-primary:focus,
+.dark-mode .btn-check:checked + .btn-primary:focus,
+.dark-mode .btn-primary.active:focus,
+.dark-mode .btn-primary:active:focus,
+.dark-mode .show > .btn-primary.dropdown-toggle:focus {
+    box-shadow: 0 0 0 .25rem rgba(255, 26, 179, .5);
+}
+
+.dark-mode .leaflet-container {
+	background: unset;
+}
+
+/* Map help text */
+
+#map-home-help {
+	position: absolute;
+	top: 15px;
+	right: 15px;
+	z-index: 500;
+	font-size: 2.5em;
+	color: #111;
+	text-shadow: 0 0 5px white;
+	pointer-events: none;
+}
+
+.dark-mode #map-home-help {
+	color: #eee;
+	text-shadow: 0 0 5px black;
+}
+
+/* Custom style */
+
+#header {
+	background-color: #ddd;
+	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.25);
+}
+
+.dark-mode #header {
+	background-color: #333;
+}
+
+h1 {
+	margin-bottom: 0;
+	font-size: 3rem;
+	min-width: 500px;
+}
+
+#size-dropdown {
+	min-width: 250px;
+}
+
+#info-modal-open {
+	margin: 0 15px;
+}
+
+.dark-mode-emoji {
+	font-size: 1.5em;
+}
+
+#dark-mode-switch {
+	margin: 0 5px;
+}
+
+#main {
+	margin-top: 7rem;
+}
+
+#data-info {
+	margin: 0;
+	font-size: 1.5em;
+	text-align: center;
+}
+
+#info-modal h3 {
+	font-size: 1.25em;
+	font-weight: bold;
+}
+
+.data-analyse {
+	padding-left: 1.5rem;
+	padding-right: 1.5rem;
+	font-size: 1.25em;
+}
+
+strong {
+	color: #9900ff;
+}
+
+.dark-mode strong {
+	color: #ff59c7;
 }
