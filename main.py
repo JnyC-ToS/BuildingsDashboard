@@ -236,6 +236,7 @@ if __name__ == "__main__":
 			xaxis_title_text="Type de bâtiment",
 			yaxis_title_text="Nombre de bâtiments"
 		)
+
 		usages_most_key, usages_most_val = max_values(dataset["usage"])
 		graph_usages_analyse = [
 			"Ce graphique représente la répartition de l'usage des bâtiments. Contrairement au champ ",
@@ -331,15 +332,6 @@ if __name__ == "__main__":
 		return dark
 
 	@app.callback(
-		# Output("data-info", "children"),
-		# Output("hist-etages", "figure"),
-		# Output("hist-etages-analyse", "children"),
-		# Output("hist-logements", "figure"),
-		# Output("hist-logements-analyse", "children"),
-		# Output("graph-usages", "figure"),
-		# Output("graph-usages-analyse", "children"),
-		# Output("map-buildings", "figure"),
-		# Output("map-buildings-analyse", "children"),
 		Output("dashboard-content", "children"),
 		Input("size-dropdown", "value"),
 		Input("map-home", "click_lat_lng"),
@@ -433,15 +425,37 @@ if __name__ == "__main__":
 					dbc.ModalBody([
 						html.H3("Les données"),
 						html.P("""
-							...
+							Les données exploitées sont issues de la BDTOPO v3 de l'IGN (Institut National de
+							l'Information Géographique et Forestière). Ces données sont devenues libres d'accès il y a
+							peu de temps, et sont accessibles à travers le GéoPortail, sous forme de flux WXS.
+						"""),
+						html.P("""
+							Ce qui nous intéresse ici est un flux de données vecteur en WFS de la ressource
+							\"BDTOPO_V3:batiment\". La documentation est disponible en ligne sur le site GéoServices,
+							à travers notamment, le descriptif de contenu de la BDTOPO v3 (section 8.2 BATIMENT).
 						"""),
 						html.H3("Les interactions"),
 						html.P("""
-							...
+							Depuis la carte sur laquelle on arrive pour sélectionner une zone, il est possible de se
+							déplacer puis de cliquer sur l'endroit dont on souhaite explorer les bâtiments. Une fois
+							sur le dashboard, si la zone est trop petite, il est possible d'affiner le rayon avec le
+							menu déroulant, cependant charger une plus grande zone va demander plus de temps."""),
+						html.P("""
+							Le dashboard dispose d'un thème clair, en blanc et violet, ainsi que d'un thème sombre, en
+							noir et rose. Ce thème est contrôllable à partir du bouton en haut à droite. Les graphiques
+							et les cartes vont se mettre à jour en conformité avec le thème sélectionnée."""),
+						html.P("""
+							Enfin, il est possible d'interagir avec les graphiques en sélectionnant des zones, exporter
+							des images, etc... grâce aux boutons directement présents en haut à droite de chacun.
 						"""),
 						html.H3("À propos"),
 						html.P("""
-							...
+							Ce dashboard a été réalisé par Jenny CAO et Théo SZANTO dans le cadre d'un projet en 3ème
+							année d'école d'ingénieur à ESIEE Paris."""),
+						html.P("""Le choix des données était libre, cependant elles
+							devaient être accessibles en Open Data, pouvoir être représentable sur une carte, et le
+							dashboard devait inclure au moins un histogramme. Enfin, elles devaient être chargées
+							dynamiquement si possible selon des actions de l'utilisateur.
 						""")
 					]),
 					dbc.ModalFooter(dbc.Button("Fermer", id="info-modal-close"))
@@ -472,24 +486,7 @@ if __name__ == "__main__":
 
 	dashboard = html.Div([
 		header,
-		html.Main(dcc.Loading([
-			html.Div(id="dashboard-content")
-			# html.P(id="data-info", className="pb-4"),
-			# dbc.Row([
-			# 	dbc.Col([
-			# 		dcc.Graph(id="hist-etages", className="pb-4"),
-			# 		html.P(id="hist-etages-analyse", className="data-analyse")
-			# 	], width=6),
-			# 	dbc.Col([
-			# 		dcc.Graph(id="hist-logements", className="pb-4"),
-			# 		html.P(id="hist-logements-analyse", className="data-analyse")
-			# 	], width=6)
-			# ], className="pb-4"),
-			# dcc.Graph(id="graph-usages", className="pb-4"),
-			# html.P(id="graph-usages-analyse", className="data-analyse pb-4"),
-			# dcc.Graph(id="map-buildings", className="pb-4"),
-			# html.P(id="map-buildings-analyse", className="data-analyse pb-4")
-		], type="circle"), id="main", className="container-fluid px-4"),
+		html.Main(dcc.Loading(html.Div(id="dashboard-content"), type="circle"), id="main", className="container-fluid px-4"),
 	], id="dashboard", className="d-none")
 
 	app.layout = html.Div([
