@@ -185,6 +185,10 @@ h1 {
 	text-align: center;
 }
 
+#data-info pre {
+	text-align: left;
+}
+
 #info-modal h3 {
 	font-size: 1.25em;
 	font-weight: bold;

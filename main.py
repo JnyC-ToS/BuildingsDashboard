@@ -11,6 +11,8 @@ import dash_leaflet as dl
 from math import cos, radians
 import pandas as pd
 import requests
+import traceback
+import sys
 
 
 base_url = "https://wxs.ign.fr/essentiels/geoportail/wfs?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature" \
@@ -40,32 +42,38 @@ def fetch_data(center_lon, center_lat, size):
 
 	py_data = []
 	json_data = {"type": "FeatureCollection", "features": []}
+	error = None
 
 	offset = 0
 	fetching = True
 	while fetching:
-		url = base_url.format(min_lon=min_lon, min_lat=min_lat, max_lon=max_lon, max_lat=max_lat, offset=offset)
-		print(f"Requesting URL: {url}")
-		req = requests.get(url)
-		res = req.json()
+		try:
+			url = base_url.format(min_lon=min_lon, min_lat=min_lat, max_lon=max_lon, max_lat=max_lat, offset=offset)
+			print(f"Requesting URL: {url}")
+			req = requests.get(url)
+			res = req.json()
 
-		for feature in res["features"]:
-			json_data["features"].append(feature)
-			properties = feature["properties"]
-			py_data.append((
-				feature["id"],
-				feature["geometry"],
-				properties["nature"],
-				properties["usage_1"],
-				properties["nombre_d_etages"],
-				properties["hauteur"],
-				properties["nombre_de_logements"]
-			))
+			for feature in res["features"]:
+				json_data["features"].append(feature)
+				properties = feature["properties"]
+				py_data.append((
+					feature["id"],
+					feature["geometry"],
+					properties["nature"],
+					properties["usage_1"],
+					properties["nombre_d_etages"],
+					properties["hauteur"],
+					properties["nombre_de_logements"]
+				))
 
-		offset += res["numberReturned"]
-		fetching = offset < res["numberMatched"]
+			offset += res["numberReturned"]
+			fetching = offset < res["numberMatched"]
+		except requests.ConnectionError:
+			error = traceback.format_exc()
+			print(f"An error occurred during request: {error}", file=sys.stderr)
+			fetching = False
 
-	return json_data, pd.DataFrame(py_data, columns=dataset_columns)
+	return json_data, pd.DataFrame(py_data, columns=dataset_columns), error
 
 
 def histogram(serie, name, color, template):
@@ -92,7 +100,8 @@ if __name__ == "__main__":
 		"lat": 0,
 		"size": 500,
 		"dataset": pd.DataFrame(columns=dataset_columns),
-		"geojson": {"type": "FeatureCollection", "features": []}
+		"geojson": {"type": "FeatureCollection", "features": []},
+		"error": None
 	}
 
 	app = dash.Dash(
@@ -106,9 +115,15 @@ if __name__ == "__main__":
 		lon, lat = data["lon"], data["lat"]
 
 		if reload_data:
-			geojson, dataset = data["geojson"], data["dataset"] = fetch_data(lon, lat, data["size"])
+			geojson, dataset, error = data["geojson"], data["dataset"], data["error"] = fetch_data(lon, lat, data["size"])
 		else:
-			geojson, dataset = data["geojson"], data["dataset"]
+			geojson, dataset, error = data["geojson"], data["dataset"], data["error"]
+
+		if error:
+			return html.P([
+				html.Strong("Une erreur est survenue :"),
+				html.Pre(f"{error}")
+			], id="data-info", className="pb-4")
 
 		buildings_count = len(dataset)
 		if buildings_count == 0:
@@ -119,8 +134,13 @@ if __name__ == "__main__":
 				html.Strong(f"{lat:.5f}"),
 				")",
 				html.Br(),
-				"Aucun bâtiment présent dans la zone. ",
-				html.Strong("Essayez un autre endroit.")
+				"Aucun bâtiment présent dans la zone. Avez-vous cliqué en France ?",
+				html.Br(),
+				"Essayez ",
+				html.Strong("un autre endroit"),
+				" ou ",
+				html.Strong("une autre taille"),
+				"."
 			], id="data-info", className="pb-4")
 
 		data_info = [
@@ -269,7 +289,17 @@ if __name__ == "__main__":
 				"Logement(s) : %{customdata[6]}"
 			]))
 		map_buildings.update_geos(fitbounds="locations", visible=False)
-		map_buildings.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+		map_buildings.update_layout(
+			title={
+				"text": "Géo-visualisation des bâtiments avec leur hauteur",
+				"y": 0.92,
+				"x": 0.5,
+				"xanchor": "center",
+				"yanchor": "bottom",
+				"font": {"size": 24}
+			},
+			margin={"r": 0, "t": 0, "l": 0, "b": 0}
+		)
 
 		hauteur = dataset["hauteur"]
 		hauteur_notnull = hauteur[hauteur != 0]
@@ -469,7 +499,7 @@ if __name__ == "__main__":
 
 	france_bounds = [[51.197749, -5.386891], [41.325451, 9.627019]]
 	homemap = html.Div(dcc.Loading([
-		html.P("Cliquez sur la carte pour sélectionner le centre de la zone", id="map-home-help"),
+		html.P("Cliquez en France sur la carte pour sélectionner le centre de la zone", id="map-home-help"),
 		dl.Map([
 			dl.TileLayer(id="map-home-layer-light", bounds=france_bounds),
 			dl.TileLayer(
