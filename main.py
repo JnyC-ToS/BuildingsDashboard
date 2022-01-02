@@ -3,6 +3,7 @@ import numpy as np
 import dash
 from dash import dcc
 from dash import html
+from dash.development.base_component import Component
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
@@ -14,6 +15,10 @@ import requests
 import traceback
 import sys
 
+from typing import Union
+
+
+# Constants
 
 base_url = "https://wxs.ign.fr/essentiels/geoportail/wfs?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature" \
 	"&TYPENAME=BDTOPO_V3:batiment&SRSNAME=EPSG:4326&BBOX={min_lon},{min_lat},{max_lon},{max_lat},EPSG:4326" \
@@ -21,19 +26,44 @@ base_url = "https://wxs.ign.fr/essentiels/geoportail/wfs?SERVICE=WFS&VERSION=1.1
 dataset_columns = ["id", "geometry", "nature", "usage", "etages", "hauteur", "logements"]
 
 
-def lon_lat_offset(base_lat, size):
-	"""
+# Data classes and util functions
 
-	:param base_lat:
-	:param size:
-	:return:
+class Data:
+	"""
+	Data class to contains Dashboard technical stuff
+	"""
+	def __init__(self):
+		self.dark = True
+		self.lon = 0
+		self.lat = 0
+		self.size = 500
+		self.dataset = pd.DataFrame(columns=dataset_columns)
+		self.geojson = {"type": "FeatureCollection", "features": []}
+		self.error = None
+
+
+def lon_lat_offset(base_lat: float, size: float) -> (float, float):
+	"""
+	Convert a distance (in meters) into corresponding longitude and latitude offsets at a given latitude.
+
+	:param base_lat: The latitude where to compute the distance.
+	:param size: The distance to convert.
+	:return: The corresponding longitude and latitude offsets.
 	"""
 	offset_lat = size / 111_111
 	offset_lon = size / (111_111 * cos(radians(base_lat)))
 	return offset_lon, offset_lat
 
 
-def fetch_data(center_lon, center_lat, size):
+def fetch_data(center_lon: float, center_lat: float, size: float) -> tuple[dict, pd.DataFrame, str]:
+	"""
+	Fetch data from the API into GeoJSON and Panda DataFrame.
+
+	:param center_lon: The longitude of the center of the area.
+	:param center_lat: The latitude of the center of the area.
+	:param size: The size of the area.
+	:return: The fetched data.
+	"""
 	offset_lon, offset_lat = lon_lat_offset(center_lat, size / 2)
 	min_lon = center_lon - offset_lon
 	min_lat = center_lat - offset_lat
@@ -76,7 +106,16 @@ def fetch_data(center_lon, center_lat, size):
 	return json_data, pd.DataFrame(py_data, columns=dataset_columns), error
 
 
-def histogram(serie, name, color, template):
+def histogram(serie: pd.Series, name: str, color: [str], template: str):
+	"""
+	Generate an histogram using NumPy and Plotly Express from a Panda serie
+
+	:param serie: The data
+	:param name: The name of the data
+	:param color: The theme color
+	:param template: The theme template
+	:return: The histogram figure
+	"""
 	if serie.empty:
 		return px.bar(template=template)
 	counts, bins = np.histogram(serie[serie.notnull()], bins=range(int(serie.min()), int(serie.max()) + 2))
@@ -86,39 +125,49 @@ def histogram(serie, name, color, template):
 	return hist
 
 
-def max_values(serie):
+def max_values(serie: pd.Series) -> (float, float):
+	"""
+	Compute and retrieve de maximum value of a Panda serie
+
+	:param serie: The data
+	:return: The maximum value's key and value
+	"""
 	count = serie.value_counts()
 	most_key = 0 if count.empty else count.keys()[0]
 	most_val = 0 if count.empty else count[most_key]
 	return most_key, most_val
 
 
+# Main program
+
 if __name__ == "__main__":
-	data = {
-		"dark": True,
-		"lon": 0,
-		"lat": 0,
-		"size": 500,
-		"dataset": pd.DataFrame(columns=dataset_columns),
-		"geojson": {"type": "FeatureCollection", "features": []},
-		"error": None
-	}
+	data = Data()
 
 	app = dash.Dash(
 		__name__, title="Buildings Dashboard", update_title="Chargement... - Buildings Dashboard",
 		external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-	def content(reload_data):
-		dark = data["dark"]
+	def content(reload_data: bool) -> Union[Component, list[Component]]:
+		"""
+		Render the content of the Dashboard
+
+		:param reload_data: Whether to force data reload or not
+		:return: The content, assignable to an HTML div's children property
+		"""
+
+		# Gestion du theme clair/sombre
+		dark = data.dark
 		template = "plotly_dark" if dark else None
 		color = ["#ff59c7"] if dark else ["#9900ff"]
-		lon, lat = data["lon"], data["lat"]
+		lon, lat = data.lon, data.lat
 
+		# Chargement de la carte
 		if reload_data:
-			geojson, dataset, error = data["geojson"], data["dataset"], data["error"] = fetch_data(lon, lat, data["size"])
+			geojson, dataset, error = data.geojson, data.dataset, data.error = fetch_data(lon, lat, data.size)
 		else:
-			geojson, dataset, error = data["geojson"], data["dataset"], data["error"]
+			geojson, dataset, error = data.geojson, data.dataset, data.error
 
+		# Gestion des erreurs de chargement de la carte
 		if error:
 			return html.P([
 				html.Strong("Une erreur est survenue :"),
@@ -277,7 +326,7 @@ if __name__ == "__main__":
 		map_buildings = px.choropleth_mapbox(
 			dataset, geojson=geojson, locations="id", color=dataset["hauteur"], opacity=0.75,
 			mapbox_style="carto-darkmatter" if dark else "carto-positron", height=800,
-			center={"lon": data["lon"], "lat": data["lat"]}, zoom=15, template=template)
+			center={"lon": data.lon, "lat": data.lat}, zoom=15, template=template)
 		map_buildings.update_traces(
 			customdata=dataset.fillna("<i>Donnée absente</i>"),
 			hovertemplate="<br>".join([
@@ -369,17 +418,17 @@ if __name__ == "__main__":
 		State("dark-mode", "data")
 	)
 	def update_content(size, coords, ts, dark):
-		if ts is None or (size == data["size"] and coords == [data["lat"], data["lon"]] and dark == data["dark"]):
+		if ts is None or (size == data.size and coords == [data.lat, data.lon] and dark == data.dark):
 			raise PreventUpdate
 		reload_data = False
-		if size is not None and size != data["size"]:
-			data["size"] = size
+		if size is not None and size != data.size:
+			data.size = size
 			reload_data = True
-		if coords is not None and coords != [data["lat"], data["lon"]]:
-			data["lat"], data["lon"] = coords
+		if coords is not None and coords != [data.lat, data.lon]:
+			data.lat, data.lon = coords
 			reload_data = True
-		if dark is not None and dark != data["dark"]:
-			data["dark"] = dark
+		if dark is not None and dark != data.dark:
+			data.dark = dark
 		return content(reload_data)
 
 	@app.callback(
@@ -428,7 +477,7 @@ if __name__ == "__main__":
 		Input("back-to-map", "n_clicks")
 	)
 	def toggle_map(coords, back):
-		if coords is not None and coords != [data["lat"], data["lon"]]:
+		if coords is not None and coords != [data.lat, data.lon]:
 			return ["d-none", None]
 		if back is not None:
 			return [None, "d-none"]
@@ -448,7 +497,8 @@ if __name__ == "__main__":
 					{"label": "1 km", "value": 1000},
 					{"label": "2 km", "value": 2000},
 					{"label": "5 km", "value": 5000},
-				], value=data["size"], clearable=False, searchable=False),
+				], value=data.size, clearable=False, searchable=False),
+				# Bouton Information
 				dbc.Button("INFO", id="info-modal-open"),
 				dbc.Modal([
 					dbc.ModalHeader(dbc.ModalTitle("Informations sur le Dashboard")),
@@ -491,7 +541,7 @@ if __name__ == "__main__":
 					dbc.ModalFooter(dbc.Button("Fermer", id="info-modal-close"))
 				], id="info-modal", is_open=False),
 				html.Span("🌞", className="dark-mode-emoji"),
-				daq.BooleanSwitch(id="dark-mode-switch", on=data["dark"], color="#ff59c7", className="py-1"),
+				daq.BooleanSwitch(id="dark-mode-switch", on=data.dark, color="#ff59c7", className="py-1"),
 				html.Span("🌚", className="dark-mode-emoji")
 			], className="d-flex justify-content-end"), align="center")
 		], className="justify-content-between py-2")
